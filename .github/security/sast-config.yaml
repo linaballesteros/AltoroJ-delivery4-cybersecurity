@@ -1,0 +1,11 @@
+
+language: ES
+strict: false
+
+output:
+  file_path: results-sast.sarif
+  format: SARIF
+
+sast:
+  include:
+    - .
