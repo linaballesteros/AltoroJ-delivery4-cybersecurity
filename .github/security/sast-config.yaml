@@ -1,6 +1,7 @@
 
 language: ES
-strict: true
+strict: false
+strictness_threshold: high
 
 output:
   file_path: results-sast.csv

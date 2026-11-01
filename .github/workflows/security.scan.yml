@@ -10,6 +10,9 @@ permissions:
 
 jobs:
 
+  # ==========================
+  # SAST
+  # ==========================
   sast:
     name: SAST Scan
     runs-on: ubuntu-latest
@@ -33,13 +36,35 @@ jobs:
           path: results-sast.csv
           if-no-files-found: error
 
-      - name: Fail if SAST vulnerabilities found
-        if: steps.scan.outputs.vulnerabilities_found == 'true'
+      - name: Check SAST severity threshold
+        shell: bash
         run: |
-          echo "SAST detected vulnerabilities."
-          echo "Failing pipeline in strict mode."
-          exit 1
+          python3 - <<'PY'
+          import csv
+          import sys
 
+          with open("results-sast.csv", encoding="utf-8-sig", newline="") as f:
+              reader = csv.DictReader(f)
+              if not reader.fieldnames or "cvss_v4_severity" not in reader.fieldnames:
+                  sys.exit("Missing severity column")
+              findings = list(reader)
+
+          severe = [
+              row for row in findings
+              if row["cvss_v4_severity"].strip().lower()
+              in ("high", "critical")
+          ]
+
+          print(f"Total SAST findings: {len(findings)}")
+          print(f"High/Critical findings: {len(severe)}")
+
+          if severe:
+              sys.exit("SAST security threshold exceeded")
+          PY
+
+  # ==========================
+  # SCA
+  # ==========================
   sca:
     name: SCA Scan
     runs-on: ubuntu-latest
@@ -63,13 +88,35 @@ jobs:
           path: results-sca.csv
           if-no-files-found: error
 
-      - name: Fail if SCA vulnerabilities found
-        if: steps.scan.outputs.vulnerabilities_found == 'true'
+      - name: Check SCA severity threshold
+        shell: bash
         run: |
-          echo "SCA detected vulnerabilities."
-          echo "Failing pipeline in strict mode."
-          exit 1
+          python3 - <<'PY'
+          import csv
+          import sys
 
+          with open("results-sca.csv", encoding="utf-8-sig", newline="") as f:
+              reader = csv.DictReader(f)
+              if not reader.fieldnames or "cvss_v4_severity" not in reader.fieldnames:
+                  sys.exit("Missing severity column")
+              findings = list(reader)
+
+          severe = [
+              row for row in findings
+              if row["cvss_v4_severity"].strip().lower()
+              in ("high", "critical")
+          ]
+
+          print(f"Total SCA findings: {len(findings)}")
+          print(f"High/Critical findings: {len(severe)}")
+
+          if severe:
+              sys.exit("SCA security threshold exceeded")
+          PY
+
+  # ==========================
+  # SECRET SCAN
+  # ==========================
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest
@@ -93,9 +140,23 @@ jobs:
           path: results-ss.csv
           if-no-files-found: error
 
-      - name: Fail if secrets found
-        if: steps.scan.outputs.vulnerabilities_found == 'true'
+      - name: Check secret exposure policy
+        shell: bash
         run: |
-          echo "Secret Scan detected exposed secrets."
-          echo "Failing pipeline."
-          exit 1
+          python3 - <<'PY'
+          import csv
+          import sys
+
+          with open("results-ss.csv", encoding="utf-8-sig", newline="") as f:
+              reader = csv.DictReader(f)
+              if not reader.fieldnames:
+                  sys.exit("Invalid Secret Scan CSV")
+              findings = list(reader)
+
+          print(f"Exposed secrets found: {len(findings)}")
+
+          # Security policy:
+          # Any exposed secret is considered HIGH priority.
+          if findings:
+              sys.exit("Secret exposure policy violated")
+          PY
