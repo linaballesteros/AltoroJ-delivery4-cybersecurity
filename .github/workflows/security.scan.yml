@@ -19,6 +19,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run SAST
+        id: scan
         uses: fluidattacks/sast-action@1.3.0
         with:
           scanner_mode: full
@@ -30,7 +31,14 @@ jobs:
         with:
           name: sast-report
           path: results-sast.csv
-          if-no-files-found: warn
+          if-no-files-found: error
+
+      - name: Fail if SAST vulnerabilities found
+        if: steps.scan.outputs.vulnerabilities_found == 'true'
+        run: |
+          echo "SAST detected vulnerabilities."
+          echo "Failing pipeline in strict mode."
+          exit 1
 
   sca:
     name: SCA Scan
@@ -41,6 +49,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run SCA
+        id: scan
         uses: fluidattacks/sca-action@1.2.0
         with:
           scanner_mode: full
@@ -52,7 +61,14 @@ jobs:
         with:
           name: sca-report
           path: results-sca.csv
-          if-no-files-found: warn
+          if-no-files-found: error
+
+      - name: Fail if SCA vulnerabilities found
+        if: steps.scan.outputs.vulnerabilities_found == 'true'
+        run: |
+          echo "SCA detected vulnerabilities."
+          echo "Failing pipeline in strict mode."
+          exit 1
 
   secret-scan:
     name: Secret Scan
@@ -65,7 +81,6 @@ jobs:
       - name: Run Secret Scan
         id: scan
         uses: fluidattacks/ss-action@main
-        continue-on-error: true
         with:
           scanner_mode: full
           scan_config_path: .github/security/ss-config.yaml
@@ -76,8 +91,11 @@ jobs:
         with:
           name: secret-scan-report
           path: results-ss.csv
-          if-no-files-found: warn
+          if-no-files-found: error
 
-      - name: Fail on detected secrets
+      - name: Fail if secrets found
         if: steps.scan.outputs.vulnerabilities_found == 'true'
-        run: exit 1
+        run: |
+          echo "Secret Scan detected exposed secrets."
+          echo "Failing pipeline."
+          exit 1
