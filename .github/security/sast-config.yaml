@@ -1,10 +1,10 @@
 
 language: ES
-strict: false
+strict: true
 
 output:
-  file_path: results-sast.sarif
-  format: SARIF
+  file_path: results-sast.csv
+  format: CSV
 
 sast:
   include:

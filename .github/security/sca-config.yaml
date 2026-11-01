@@ -1,10 +1,10 @@
 
 language: ES
-strict: false
+strict: true
 
 output:
-  file_path: results-sca.sarif
-  format: SARIF
+  file_path: results-sca.csv
+  format: CSV
 
 sca:
   include:

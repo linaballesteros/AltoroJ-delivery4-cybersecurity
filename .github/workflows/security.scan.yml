@@ -24,6 +24,14 @@ jobs:
           scanner_mode: full
           scan_config_path: .github/security/sast-config.yaml
 
+      - name: Upload SAST CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-report
+          path: results-sast.csv
+          if-no-files-found: warn
+
   sca:
     name: SCA Scan
     runs-on: ubuntu-latest
@@ -38,6 +46,14 @@ jobs:
           scanner_mode: full
           scan_config_path: .github/security/sca-config.yaml
 
+      - name: Upload SCA CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sca-report
+          path: results-sca.csv
+          if-no-files-found: warn
+
   secret-scan:
     name: Secret Scan
     runs-on: ubuntu-latest
@@ -47,7 +63,21 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Secret Scan
+        id: scan
         uses: fluidattacks/ss-action@main
+        continue-on-error: true
         with:
           scanner_mode: full
           scan_config_path: .github/security/ss-config.yaml
+
+      - name: Upload Secret Scan CSV
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: secret-scan-report
+          path: results-ss.csv
+          if-no-files-found: warn
+
+      - name: Fail on detected secrets
+        if: steps.scan.outputs.vulnerabilities_found == 'true'
+        run: exit 1
